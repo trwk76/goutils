@@ -1,6 +1,10 @@
 package api
 
-func XMLMediaType(ctype string) MediaType {
+func XMLMediaType(prefix string, ctype string) MediaType {
+	if prefix == "" {
+		prefix = "xml"
+	}
+
 	if ctype == "" {
 		ctype = "application/xml"
 	}
@@ -9,7 +13,12 @@ func XMLMediaType(ctype string) MediaType {
 }
 
 type xmlMediaType struct{
+	pfx   string
 	ctype string
+}
+
+func (t xmlMediaType) Prefix() string {
+	return t.pfx
 }
 
 func (t xmlMediaType) ContentType() string {

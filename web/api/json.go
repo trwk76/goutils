@@ -1,15 +1,24 @@
 package api
 
-func JSONMediaType(ctype string) MediaType {
+func JSONMediaType(prefix string, ctype string) MediaType {
+	if prefix == "" {
+		prefix = "json"
+	}
+
 	if ctype == "" {
 		ctype = "application/json"
 	}
 
-	return jsonMediaType{ctype: ctype}
+	return jsonMediaType{pfx: prefix, ctype: ctype}
 }
 
 type jsonMediaType struct {
+	pfx   string
 	ctype string
+}
+
+func (t jsonMediaType) Prefix() string {
+	return t.pfx
 }
 
 func (t jsonMediaType) ContentType() string {
