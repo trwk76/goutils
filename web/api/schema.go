@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/trwk76/goutils/check"
 	"github.com/trwk76/goutils/web/api/spec"
 )
 
 type (
 	Schemas struct {
 		m MediaTypes
-		n map[string]Schema
+		n map[string]*Schema
 	}
 
 	Schema struct {
@@ -18,9 +19,15 @@ type (
 		m MediaType
 		s spec.Schema
 	}
+
+	SimpleSchema interface {
+		Schema() spec.Schema
+	}
 )
 
-func (s Schemas) With(t reflect.Type) {
+func (s Schemas) Add(t reflect.Type, m MediaTypes) {
+	var cnst check.Constraint
+
 	if t == nil {
 		panic(fmt.Errorf("cannot register nil type"))
 	}
@@ -28,16 +35,34 @@ func (s Schemas) With(t reflect.Type) {
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
+
+	val := reflect.New(t)
+
+	if st, ok := getInterface[SimpleSchema](val); ok {
+		name := s.genName(t, nil)
+		item := &Schema{t: t, m: nil, s: st.Schema()}
+
+		s.n[name] = item
+		return
+	}
+
+	if checked, ok := getInterface(val, check.Constrained); ok {
+		cnst = checked.Constraint()
+	}
+
+	switch t.Kind() {
+		
+	}
 }
 
-func (s Schemas) Type(t reflect.Type, m MediaType) (string, Schema, bool) {
+func (s Schemas) Type(t reflect.Type, m MediaType) (string, *Schema, bool) {
 	for key, item := range s.n {
 		if item.t == t && item.m == m {
 			return key, item, true
 		}
 	}
 
-	return "", Schema{}, false
+	return "", nil, false
 }
 
 func (s Schemas) Reference(t reflect.Type, m MediaType) string {
@@ -65,7 +90,7 @@ func (s Schema) Spec() spec.Schema {
 func newSchemas(m MediaTypes) Schemas {
 	return Schemas{
 		m: m,
-		n: make(map[string]Schema),
+		n: make(map[string]*Schema),
 	}
 }
 
@@ -107,4 +132,13 @@ func typeName(t reflect.Type, m MediaType) string {
 	}
 
 	return name
+}
+
+func getInterface[I any](val reflect.Value) (T, bool) {
+	if res, ok := val.Interface().(T); ok {
+		return res, true
+	}
+
+	val = reflect.Indirect(val)
+	return val.Interface().(T)
 }
